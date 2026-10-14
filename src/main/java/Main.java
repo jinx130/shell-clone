@@ -47,6 +47,7 @@ public class Main {
                                 pb.redirectErrorStream(true);
                                 Process process= pb.start();
                                 List<String> results = readOutput(process.getInputStream());
+                                System.out.println("Program was passed "+ arg.length+1+" args (including program name).");
                                 System.out.println(results);
                                 x=true;
                             }
