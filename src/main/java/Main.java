@@ -1,95 +1,80 @@
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.nio.file.Paths;
 
 public class Main {
-    public static void main(String[] args)  {
+    public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
             System.out.print("$ ");
-            String command = sc.nextLine();
+            String input = sc.nextLine();
+            String[] arguments = input.split(" ");
+            String command = arguments[0];
 
             if (command.equals("exit")) {
                 break;
-            } else if (command.startsWith("type ")) {
-                String command1 = command.substring(5).trim();
+            } else if (command.equals("type")) {
+                String command1 = input.substring(5).trim();
 
                 if (command1.equals("echo") || command1.equals("exit") || command1.equals("type")) {
                     System.out.println(command1 + " is a shell builtin");
-                }
-                else
-                {
-                    // check if not print
+                } else {
                     String path = System.getenv("PATH");
-                    String []directories = path.split(":");
-                    boolean x=false;
-                    for(String dir:directories)
-                    {
-                        String fullPath = dir+"/"+command1;
-                        if(Files.isExecutable(Path.of(fullPath)))
-                        {
-                            // how to execute it  ?
-                            String input;
-                            input = sc.nextLine();
-                            String[] arg = input.trim().split("\\s+");
+                    String[] directories = path.split(":");
+                    boolean found = false;
 
-                            String[] command_arg = new String[args.length + 1];
-                            command_arg[0] = command1;
-                            System.arraycopy(args, 1, command_arg, 1, arg.length - 1);
+                    for (String dir : directories) {
+                        String fullPath = dir + "/" + command1;
 
-                            try {
-                                ProcessBuilder pb = new ProcessBuilder(command_arg);
-                                pb.redirectErrorStream(true);
-                                Process process= pb.start();
-                                List<String> results = readOutput(process.getInputStream());
-                                System.out.println("Program was passed "+ arg.length+1+" args (including program name).");
-                                System.out.println(results);
-                                x=true;
-                            }
-                            catch (Exception e)
-                            {
-
-                            }
-
-
+                        if (Files.isExecutable(Path.of(fullPath))) {
+                            System.out.println(command1 + " is " + fullPath);
+                            found = true;
+                            break;
                         }
                     }
-                    if(!x)
-                    {
-                        System.out.println(command1+": not found");
+
+                    if (!found) {
+                        System.out.println(command1 + ": not found");
                     }
                 }
-            } else if (command.startsWith("echo ")) {
-                System.out.println(command.substring(5));
+            } else if (command.equals("echo")) {
+                System.out.println(input.substring(5));
             } else {
-                System.out.println(command + ": command not found");
+                String path = System.getenv("PATH");
+                String[] directories = path.split(":");
+                boolean found = false;
+
+                for (String dir : directories) {
+                    String fullPath = dir + "/" + command;
+
+                    if (Files.isExecutable(Path.of(fullPath))) {
+                        List<String> commandArg = new ArrayList<>();
+
+                        for (String argument : arguments) {
+                            commandArg.add(argument);
+                        }
+
+                        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
+                        processBuilder.inheritIO();
+
+                        Process process = processBuilder.start();
+                        process.waitFor();
+
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    System.out.println(command + ": command not found");
+                }
             }
         }
 
         sc.close();
     }
-    public static List<String> readOutput(InputStream input)
-            throws IOException {
-
-        List<String> results = new java.util.ArrayList<>();
-
-        try (java.io.BufferedReader reader =
-                     new java.io.BufferedReader(
-                             new java.io.InputStreamReader(input))) {
-
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                results.add(line);
-            }
-        }
-
-        return results;
-    }
-
 }
