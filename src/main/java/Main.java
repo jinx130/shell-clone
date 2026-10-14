@@ -11,14 +11,25 @@ public class Main {
 
             String command;
             command = sc.nextLine();
+            boolean x=false;
+            if (command.startsWith("type")) {
+               String command1 = command.substring(4).trim();
+                 if(command1.equals("echo")||command1.equals("exit")||command1.equals("type"))
+                 {
+
+                    System.out.println(command1 + " is a shell builtin");
+                    x = true;
+                }
+            }
             if(command.substring(0,4).equals("echo"))
             {
                 System.out.println(command.substring(5));
-                System.out.print("$ ");
-                continue;
+                x=true;
             }
             if(Objects.equals(command, "exit"))break;
-            System.out.println(command + ": command not found");
+            if(!x) {
+                System.out.println(command + ": command not found");
+            }
             System.out.print("$ ");
         }
     }
