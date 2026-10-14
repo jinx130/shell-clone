@@ -10,6 +10,6 @@ public class Main {
          String command;
          command = sc.nextLine();
 
-         System.out.print("{"+command+"}"+": command not found");
+         System.out.print(command+": command not found");
     }
 }
