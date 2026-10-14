@@ -1,10 +1,13 @@
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Scanner;
 import java.nio.file.Paths;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args)  {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
@@ -30,9 +33,22 @@ public class Main {
                         String fullPath = dir+"/"+command1;
                         if(Files.isExecutable(Path.of(fullPath)))
                         {
-                            System.out.println(command1 + " is " + fullPath);
-                            x=true;
-                            break;
+                            // how to execute it  ?
+                            String []command_arg=command1.split(" ");
+                            try {
+                                ProcessBuilder pb = new ProcessBuilder(command_arg);
+                                pb.redirectErrorStream(true);
+                                Process process= pb.start();
+                                List<String> results = readOutput(process.getInputStream());
+                                System.out.println(results);
+                                x=true;
+                            }
+                            catch (Exception e)
+                            {
+
+                            }
+
+
                         }
                     }
                     if(!x)
@@ -49,4 +65,23 @@ public class Main {
 
         sc.close();
     }
+    public static List<String> readOutput(InputStream input)
+            throws IOException {
+
+        List<String> results = new java.util.ArrayList<>();
+
+        try (java.io.BufferedReader reader =
+                     new java.io.BufferedReader(
+                             new java.io.InputStreamReader(input))) {
+
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                results.add(line);
+            }
+        }
+
+        return results;
+    }
+
 }
