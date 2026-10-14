@@ -34,7 +34,14 @@ public class Main {
                         if(Files.isExecutable(Path.of(fullPath)))
                         {
                             // how to execute it  ?
-                            String []command_arg=command1.split(" ");
+                            String input;
+                            input = sc.nextLine();
+                            String[] arg = input.trim().split("\\s+");
+
+                            String[] command_arg = new String[args.length + 1];
+                            command_arg[0] = command1;
+                            System.arraycopy(args, 1, command_arg, 1, arg.length - 1);
+
                             try {
                                 ProcessBuilder pb = new ProcessBuilder(command_arg);
                                 pb.redirectErrorStream(true);
