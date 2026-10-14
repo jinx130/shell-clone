@@ -24,14 +24,20 @@ public class Main {
                     // check if not print
                     String path = System.getenv("PATH");
                     String []directories = path.split(":");
+                    boolean x=false;
                     for(String dir:directories)
                     {
                         String fullPath = dir+"/"+command1;
                         if(Files.isExecutable(Path.of(fullPath)))
                         {
                             System.out.println(command1 + " is " + fullPath);
+                            x=true;
                             break;
                         }
+                    }
+                    if(!x)
+                    {
+                        System.out.println(command1+": not found");
                     }
                 }
             } else if (command.startsWith("echo ")) {
