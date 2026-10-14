@@ -18,8 +18,13 @@ public class Main {
                  {
 
                     System.out.println(command1 + " is a shell builtin");
-                    x = true;
+
                 }
+                 else
+                 {
+                    System.out.println(command1+": not found");
+                 }
+                x = true;
             }
             if(command.substring(0,4).equals("echo"))
             {
