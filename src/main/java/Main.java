@@ -10,8 +10,13 @@ public class Main {
         while(true) {
 
             String command;
-
             command = sc.nextLine();
+            if(command.substring(0,4).equals("echo"))
+            {
+                System.out.println(command.substring(5));
+                System.out.print("$ ");
+                continue;
+            }
             if(Objects.equals(command, "exit"))break;
             System.out.println(command + ": command not found");
             System.out.print("$ ");
