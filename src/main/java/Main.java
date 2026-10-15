@@ -17,7 +17,12 @@ public class Main {
 
             if (command.equals("exit")) {
                 break;
-            } else if (command.equals("type")) {
+            }
+            else if(command.equals("pwd"))
+            {
+                System.out.println(System.getProperty("user.dir"));
+            }
+            else if (command.equals("type")) {
                 String command1 = input.substring(5).trim();
 
                 if (command1.equals("echo") || command1.equals("exit") || command1.equals("type")) {
@@ -44,10 +49,7 @@ public class Main {
             } else if (command.equals("echo")) {
                 System.out.println(input.substring(5));
             }
-            else if(command.equals("pwd"))
-            {
-                System.out.println(System.getProperty("user.dir"));
-            }
+
 
             else {
                 String path = System.getenv("PATH");
