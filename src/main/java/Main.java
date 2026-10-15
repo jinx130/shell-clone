@@ -43,7 +43,13 @@ public class Main {
                 }
             } else if (command.equals("echo")) {
                 System.out.println(input.substring(5));
-            } else {
+            }
+            else if(command.equals("pwd"))
+            {
+                System.out.println(System.getProperty("user.dir"));
+            }
+
+            else {
                 String path = System.getenv("PATH");
                 String[] directories = path.split(":");
                 boolean found = false;
