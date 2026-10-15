@@ -25,7 +25,7 @@ public class Main {
             else if (command.equals("type")) {
                 String command1 = input.substring(5).trim();
 
-                if (command1.equals("echo") || command1.equals("exit") || command1.equals("type")) {
+                if (command1.equals("echo") || command1.equals("exit") || command1.equals("type") || command1.equals("pwd")) {
                     System.out.println(command1 + " is a shell builtin");
                 } else {
                     String path = System.getenv("PATH");
