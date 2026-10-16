@@ -1,6 +1,7 @@
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -14,13 +15,27 @@ public class Main {
             String input = sc.nextLine();
             String[] arguments = input.split(" ");
             String command = arguments[0];
-
+            String currDirectory = System.getProperty("user.dir");
             if (command.equals("exit")) {
                 break;
             }
             else if(command.equals("pwd"))
             {
-                System.out.println(System.getProperty("user.dir"));
+                System.out.println(currDirectory);
+            }
+            else if(command.startsWith("cd"))
+            {
+                String command2 = input.substring(2).trim();
+
+                    Path path = Paths.get(command2);
+                    if(Files.isDirectory(path))
+                    {
+                        System.setProperty("user.dir",command2);
+                    }
+                    else
+                    {
+                        System.out.println("cd: "+command2+": No such file or directory");
+                    }
             }
             else if (command.equals("type")) {
                 String command1 = input.substring(5).trim();
