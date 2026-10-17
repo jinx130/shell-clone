@@ -71,15 +71,8 @@ public class Main {
                             System.out.println("cd: " + command2 + ": No such file or directory");
                         }
                     }
-                    else if (command2.startsWith("~")) {
-                        String path = System.getProperty("user.home") + command2.substring(1);
-                        Path target = Paths.get(path).normalize();
-
-                        if (Files.isDirectory(target)) {
-                            System.setProperty("user.dir", target.toString());
-                        } else {
-                            System.out.println("cd: " + command2 + ": No such file or directory");
-                        }
+                    else if (command2.equals("~")) {
+                        System.setProperty("user.dir", homeDirectory);
                     }
                     else if(command2.startsWith("./"))
                     {
