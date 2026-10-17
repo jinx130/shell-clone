@@ -13,7 +13,7 @@ public class Main {
         while (true) {
             System.out.print("$ ");
             String input = sc.nextLine();
-            String[] arguments = input.split(" ");
+            String[] arguments = input.trim().split("\\s+");
             String command = arguments[0];
             String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
@@ -159,10 +159,11 @@ public class Main {
                         List<String> commandArg = new ArrayList<>();
 
                         for (String argument : arguments) {
-                            commandArg.add(argument);
+                            commandArg.add(argument.replace("'", ""));
                         }
 
-                        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
+                        ProcessBuilder processBuilder = new ProcessBuilder();
+                        processBuilder.command(commandArg);
                         processBuilder.inheritIO();
 
                         Process process = processBuilder.start();
