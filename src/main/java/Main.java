@@ -23,6 +23,7 @@ public class Main {
             {
                 System.out.println(System.getProperty("user.dir"));
             }
+
             else if(command.startsWith("cd"))
             {
                 String command2 = input.substring(2).trim();
@@ -111,7 +112,38 @@ public class Main {
                     }
                 }
             } else if (command.equals("echo")) {
-                System.out.println(input.substring(5));
+                input = input.substring(5).trim();
+                StringBuffer stringBuffer = new StringBuffer();
+                int i = 0;
+
+                while (i < input.length()) {
+                    while (i < input.length() && input.charAt(i) != ' ') {
+                        if (input.charAt(i) == '\'') {
+                            i++;
+                            while (i < input.length() && input.charAt(i) != '\'') {
+                                stringBuffer.append(input.charAt(i));
+                                i++;
+                            }
+                            if (i < input.length()) {
+                                i++;
+                            }
+                        } else {
+                            stringBuffer.append(input.charAt(i));
+                            i++;
+                        }
+                    }
+
+                    if (i < input.length()) {
+                        stringBuffer.append(' ');
+                    }
+
+                    while (i < input.length() && input.charAt(i) == ' ') {
+                        i++;
+                    }
+                }
+
+                System.out.println(stringBuffer);
+               // System.out.println(stringBuffer);
             }
 
 
