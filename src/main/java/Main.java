@@ -15,7 +15,7 @@ public class Main {
             String input = sc.nextLine();
             String[] arguments = input.split(" ");
             String command = arguments[0];
-            String homeDirectory = System.getProperty("user.dir");
+            String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
                 break;
             }
