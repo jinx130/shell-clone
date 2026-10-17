@@ -15,26 +15,77 @@ public class Main {
             String input = sc.nextLine();
             String[] arguments = input.split(" ");
             String command = arguments[0];
-            String currDirectory = System.getProperty("user.dir");
+            String homeDirectory = System.getProperty("user.dir");
             if (command.equals("exit")) {
                 break;
             }
             else if(command.equals("pwd"))
             {
-                System.out.println(currDirectory);
+                System.out.println(System.getProperty("user.dir"));
             }
             else if(command.startsWith("cd"))
             {
                 String command2 = input.substring(2).trim();
 
-                    Path path = Paths.get(command2);
-                    if(Files.isDirectory(path))
-                    {
-                        System.setProperty("user.dir",command2);
+                    if(command2.startsWith("/")) {
+                        Path path = Paths.get(command2);
+                        if (Files.isDirectory(path)) {
+                            System.setProperty("user.dir", command2);
+                        } else {
+                            System.out.println("cd: " + command2 + ": No such file or directory");
+                        }
                     }
-                    else
+                   else  if (command2.startsWith("../"))
                     {
-                        System.out.println("cd: "+command2+": No such file or directory");
+                        int count=0;
+                        int i;
+                       for( i=0;i<command2.length();i+=3)
+                       {
+                           if(command2.substring(i,i+3).equals("../"))
+                           {
+                               count++;
+                           }
+                           else
+                           {
+                               break;
+                           }
+                       }
+                       // new command will be count directories back and add command 2 substring
+
+                        String pwd = System.getProperty("user.dir");
+                        int index = pwd.lastIndexOf('/');
+
+                        int n = count;
+
+                        for (int j = 1; j < n; j++) {
+                            index = pwd.lastIndexOf('/', index - 1);
+                        }
+
+                        Path path = Paths.get(pwd.substring(0,index)+command2.substring(i));
+                        if(Files.isDirectory(path))
+                        {
+                            System.setProperty("user.dir",pwd.substring(0,index)+command2.substring(i));
+                        }
+                        else
+                        {
+                            System.out.println("cd: " + command2 + ": No such file or directory");
+                        }
+                    }
+                    else if(command2.startsWith("~"))
+                    {
+                        Path path = Paths.get("/home/anish");
+                        System.setProperty("user.dir","/home/anish");
+                    }
+                    else if(command2.startsWith("./"))
+                    {
+
+                            command2 = System.getProperty("user.dir")+"/"+command2.substring(2);
+                            Path path = Paths.get(command2);
+                            if (Files.isDirectory(path)) {
+                                System.setProperty("user.dir", command2);
+                            } else {
+                                System.out.println("cd: " + command2 + ": No such file or directory");
+                            }
                     }
             }
             else if (command.equals("type")) {
