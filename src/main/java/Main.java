@@ -73,8 +73,7 @@ public class Main {
                     }
                     else if(command2.startsWith("~"))
                     {
-                        Path path = Paths.get(System.getProperty("user.home"));
-                        System.setProperty("user.dir",path.toString());
+                        System.setProperty("user.dir",System.getProperty("user.home"));
                     }
                     else if(command2.startsWith("./"))
                     {
