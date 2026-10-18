@@ -18,16 +18,7 @@ public class Main {
         boolean backslash =false;
 
         for (int i = 0; i < input.length(); i++) {
-
-            if(backslash)
-            {
-                backslash=!backslash;
-                if(!current.isEmpty() && i+1==input.length())
-                {
-                    args.add(current.toString());
-                }
-                continue;
-            }
+            
             char c = input.charAt(i);
 
             if(c=='"')
