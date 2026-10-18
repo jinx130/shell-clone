@@ -1,27 +1,58 @@
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
+
+    // CHANGE 1: new helper that splits input into arguments and respects single quotes
+    static String[] parseArguments(String input) {
+        List<String> args = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        boolean hasToken = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+
+            if (c == '\'') {
+                inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
+                hasToken = true;        // so '' still counts as an argument
+            } else if (c == ' ' && !inQuotes) {
+                if (hasToken) {
+                    args.add(current.toString());
+                    current.setLength(0);
+                    hasToken = false;
+                }
+            } else {
+                current.append(c);
+                hasToken = true;
+            }
+        }
+
+        if (hasToken) {
+            args.add(current.toString());
+        }
+
+        return args.toArray(new String[0]);
+    }
+
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
             System.out.print("$ ");
             String input = sc.nextLine();
-            String[] arguments = input.split(" ");
 
-            for (int i = 0; i < arguments.length; i++) {
-                arguments[i] = arguments[i].replace("'", "");
+            // CHANGE 2: use the new parser instead of input.split(" ")
+            String[] arguments = parseArguments(input);
+            if (arguments.length == 0) {
+                continue;   // empty line, just show the prompt again
             }
 
             String command = arguments[0];
-
             String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
                 break;
@@ -35,64 +66,64 @@ public class Main {
             {
                 String command2 = input.substring(2).trim();
 
-                    if(command2.startsWith("/")) {
-                        Path path = Paths.get(command2);
-                        if (Files.isDirectory(path)) {
-                            System.setProperty("user.dir", command2);
-                        } else {
-                            System.out.println("cd: " + command2 + ": No such file or directory");
-                        }
+                if(command2.startsWith("/")) {
+                    Path path = Paths.get(command2);
+                    if (Files.isDirectory(path)) {
+                        System.setProperty("user.dir", command2);
+                    } else {
+                        System.out.println("cd: " + command2 + ": No such file or directory");
                     }
-                   else  if (command2.startsWith("../"))
+                }
+                else  if (command2.startsWith("../"))
+                {
+                    int count=0;
+                    int i;
+                    for( i=0;i<command2.length();i+=3)
                     {
-                        int count=0;
-                        int i;
-                       for( i=0;i<command2.length();i+=3)
-                       {
-                           if(command2.substring(i,i+3).equals("../"))
-                           {
-                               count++;
-                           }
-                           else
-                           {
-                               break;
-                           }
-                       }
-                       // new command will be count directories back and add command 2 substring
-
-                        String pwd = System.getProperty("user.dir");
-                        int index = pwd.lastIndexOf('/');
-
-                        int n = count;
-
-                        for (int j = 1; j < n; j++) {
-                            index = pwd.lastIndexOf('/', index - 1);
-                        }
-
-                        Path path = Paths.get(pwd.substring(0,index)+command2.substring(i));
-                        if(Files.isDirectory(path))
+                        if(command2.substring(i,i+3).equals("../"))
                         {
-                            System.setProperty("user.dir",pwd.substring(0,index)+command2.substring(i));
+                            count++;
                         }
                         else
                         {
-                            System.out.println("cd: " + command2 + ": No such file or directory");
+                            break;
                         }
                     }
-                    else if (command2.equals("~")) {
-                        System.setProperty("user.dir", homeDirectory);
-                    }
-                    else if(command2.startsWith("./"))
-                    {
+                    // new command will be count directories back and add command 2 substring
 
-                            command2 = System.getProperty("user.dir")+"/"+command2.substring(2);
-                            Path path = Paths.get(command2);
-                            if (Files.isDirectory(path)) {
-                                System.setProperty("user.dir", command2);
-                            } else {
-                                System.out.println("cd: " + command2 + ": No such file or directory");
-                            }
+                    String pwd = System.getProperty("user.dir");
+                    int index = pwd.lastIndexOf('/');
+
+                    int n = count;
+
+                    for (int j = 1; j < n; j++) {
+                        index = pwd.lastIndexOf('/', index - 1);
                     }
+
+                    Path path = Paths.get(pwd.substring(0,index)+command2.substring(i));
+                    if(Files.isDirectory(path))
+                    {
+                        System.setProperty("user.dir",pwd.substring(0,index)+command2.substring(i));
+                    }
+                    else
+                    {
+                        System.out.println("cd: " + command2 + ": No such file or directory");
+                    }
+                }
+                else if (command2.equals("~")) {
+                    System.setProperty("user.dir", homeDirectory);
+                }
+                else if(command2.startsWith("./"))
+                {
+
+                    command2 = System.getProperty("user.dir")+"/"+command2.substring(2);
+                    Path path = Paths.get(command2);
+                    if (Files.isDirectory(path)) {
+                        System.setProperty("user.dir", command2);
+                    } else {
+                        System.out.println("cd: " + command2 + ": No such file or directory");
+                    }
+                }
             }
             else if (command.equals("type")) {
                 String command1 = input.substring(5).trim();
@@ -119,34 +150,15 @@ public class Main {
                     }
                 }
             } else if (command.equals("echo")) {
-                input = input.substring(5).trim();
-                StringBuffer stringBuffer = new StringBuffer();
-                int i=0;
-                while(i<input.length())
-                {
-                    while(i<input.length() && input.charAt(i)!=' ')
-                    {
-                        stringBuffer.append(i);
-                        if( input.charAt(i) == '\'')
-                        {
-                            i++;
-                            while(i<input.length() && input.charAt(i)!='\'')
-                            {
-                                stringBuffer.append(input.charAt(i));
-                                i++;
-                            }
-                        }
+                // CHANGE 3: the parser already handled the quotes, so just join the args with a single space
+                StringBuilder output = new StringBuilder();
+                for (int k = 1; k < arguments.length; k++) {
+                    if (k > 1) {
+                        output.append(' ');
                     }
-                    if(i<input.length()) {
-                        stringBuffer.append(' ');
-                    }
-                    while (i<input.length() && input.charAt(i)==' ')
-                    {
-                        i++;
-                    }
-
+                    output.append(arguments[k]);
                 }
-                System.out.println(stringBuffer);
+                System.out.println(output);
             }
 
 
@@ -180,8 +192,6 @@ public class Main {
                     System.out.println(command + ": command not found");
                 }
             }
-            System.out.println(Arrays.toString(arguments));
-
         }
 
         sc.close();
