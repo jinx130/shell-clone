@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -13,8 +14,14 @@ public class Main {
         while (true) {
             System.out.print("$ ");
             String input = sc.nextLine();
-            String[] arguments = input.trim().split("\\s+");
+            String[] arguments = input.split(" ");
+
+            for (int i = 0; i < arguments.length; i++) {
+                arguments[i] = arguments[i].replace("'", "");
+            }
+
             String command = arguments[0];
+
             String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
                 break;
@@ -114,36 +121,32 @@ public class Main {
             } else if (command.equals("echo")) {
                 input = input.substring(5).trim();
                 StringBuffer stringBuffer = new StringBuffer();
-                int i = 0;
-
-                while (i < input.length()) {
-                    while (i < input.length() && input.charAt(i) != ' ') {
-                        if (input.charAt(i) == '\'') {
+                int i=0;
+                while(i<input.length())
+                {
+                    while(i<input.length() && input.charAt(i)!=' ')
+                    {
+                        stringBuffer.append(i);
+                        if( input.charAt(i) == '\'')
+                        {
                             i++;
-                            while (i < input.length() && input.charAt(i) != '\'') {
+                            while(i<input.length() && input.charAt(i)!='\'')
+                            {
                                 stringBuffer.append(input.charAt(i));
                                 i++;
                             }
-                            if (i < input.length()) {
-                                i++;
-                            }
-                        } else {
-                            stringBuffer.append(input.charAt(i));
-                            i++;
                         }
                     }
-
-                    if (i < input.length()) {
+                    if(i<input.length()) {
                         stringBuffer.append(' ');
                     }
-
-                    while (i < input.length() && input.charAt(i) == ' ') {
+                    while (i<input.length() && input.charAt(i)==' ')
+                    {
                         i++;
                     }
-                }
 
+                }
                 System.out.println(stringBuffer);
-               // System.out.println(stringBuffer);
             }
 
 
@@ -159,11 +162,10 @@ public class Main {
                         List<String> commandArg = new ArrayList<>();
 
                         for (String argument : arguments) {
-                            commandArg.add(argument.replace("'", ""));
+                            commandArg.add(argument);
                         }
 
-                        ProcessBuilder processBuilder = new ProcessBuilder();
-                        processBuilder.command(commandArg);
+                        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
                         processBuilder.inheritIO();
 
                         Process process = processBuilder.start();
@@ -178,6 +180,8 @@ public class Main {
                     System.out.println(command + ": command not found");
                 }
             }
+            System.out.println(Arrays.toString(arguments));
+
         }
 
         sc.close();
