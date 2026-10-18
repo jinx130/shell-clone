@@ -30,7 +30,7 @@ public class Main {
             {
                 doubleQuotes=!doubleQuotes;
             }
-            else if(c=='\\')
+            else if(c=='\\' && !inQuotes)
             {
               backslash = true;
               if(i+1<input.length()) {
