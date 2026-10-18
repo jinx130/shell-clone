@@ -55,6 +55,26 @@ public class Main {
         return args.toArray(new String[0]);
     }
 
+    static Path resolvePath(String filepath) {
+        Path path = Paths.get(filepath);
+
+        if (!path.isAbsolute()) {
+            path = Paths.get(System.getProperty("user.dir")).resolve(path);
+        }
+
+        return path.normalize();
+    }
+
+    static int redirectionIndex(String[] arguments) {
+        for (int i = 1; i < arguments.length; i++) {
+            if (arguments[i].equals(">") || arguments[i].equals("1>")) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
@@ -73,15 +93,25 @@ public class Main {
 
             if (command.equals("exit")) {
                 break;
+
             } else if (command.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
 
             } else if (command.equals("cd")) {
-                String command2 = arguments.length > 1 ? arguments[1] : homeDirectory;
-                Path path = Paths.get(command2.equals("~") ? homeDirectory : command2);
+                String command2 = arguments.length > 1
+                        ? arguments[1] : homeDirectory;
 
-                if (!path.isAbsolute()) {
-                    path = Paths.get(System.getProperty("user.dir")).resolve(path);
+                Path path;
+
+                if (command2.equals("~")) {
+                    path = Paths.get(homeDirectory);
+                } else {
+                    path = Paths.get(command2);
+
+                    if (!path.isAbsolute()) {
+                        path = Paths.get(System.getProperty("user.dir"))
+                                .resolve(path);
+                    }
                 }
 
                 path = path.normalize();
@@ -89,7 +119,8 @@ public class Main {
                 if (Files.isDirectory(path)) {
                     System.setProperty("user.dir", path.toAbsolutePath().toString());
                 } else {
-                    System.out.println("cd: " + command2 + ": No such file or directory");
+                    System.out.println("cd: " + command2
+                            + ": No such file or directory");
                 }
 
             } else if (command.equals("type")) {
@@ -123,16 +154,35 @@ public class Main {
                 }
 
             } else if (command.equals("echo")) {
+                int redirectIndex = redirectionIndex(arguments);
                 StringBuilder output = new StringBuilder();
 
-                for (int i = 1; i < arguments.length; i++) {
+                int end = redirectIndex == -1
+                        ? arguments.length : redirectIndex;
+
+                for (int i = 1; i < end; i++) {
                     if (i > 1) {
                         output.append(' ');
                     }
                     output.append(arguments[i]);
                 }
 
-                System.out.println(output);
+                if (redirectIndex != -1) {
+                    if (redirectIndex + 1 >= arguments.length) {
+                        System.out.println("Syntax error: expected file path after "
+                                + arguments[redirectIndex]);
+                        continue;
+                    }
+
+                    Path outputPath = resolvePath(arguments[redirectIndex + 1]);
+
+                    Files.writeString(
+                            outputPath,
+                            output + System.lineSeparator()
+                    );
+                } else {
+                    System.out.println(output);
+                }
 
             } else {
                 String path = System.getenv("PATH");
@@ -143,39 +193,35 @@ public class Main {
 
                     if (Files.isExecutable(Path.of(fullPath))) {
                         List<String> commandArg = new ArrayList<>();
-                        String filepath = null;
-                        String redirectOperator = null;
+                        int redirectIndex = redirectionIndex(arguments);
 
-                        for (int i = 0; i < arguments.length; i++) {
-                            if (arguments[i].equals(">") || arguments[i].equals("1>")) {
-                                redirectOperator = arguments[i];
+                        int end = redirectIndex == -1
+                                ? arguments.length : redirectIndex;
 
-                                if (i + 1 >= arguments.length) {
-                                    System.out.println("Syntax error: expected file path after " + redirectOperator);
-                                    break;
-                                }
-
-                                filepath = arguments[++i];
-                                break;
-                            }
-
+                        for (int i = 0; i < end; i++) {
                             commandArg.add(arguments[i]);
                         }
 
-                        if (redirectOperator != null && filepath == null) {
+                        if (redirectIndex != -1
+                                && redirectIndex + 1 >= arguments.length) {
+                            System.out.println("Syntax error: expected file path after "
+                                    + arguments[redirectIndex]);
                             found = true;
                             break;
                         }
 
-                        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
-                        processBuilder.directory(new File(System.getProperty("user.dir")));
+                        ProcessBuilder processBuilder =
+                                new ProcessBuilder(commandArg);
 
-                        if (filepath != null) {
-                            File outputFile = new File(filepath);
-                            if (!outputFile.isAbsolute()) {
-                                outputFile = new File(System.getProperty("user.dir"), filepath);
-                            }
-                            processBuilder.redirectOutput(outputFile);
+                        processBuilder.directory(
+                                new File(System.getProperty("user.dir"))
+                        );
+
+                        if (redirectIndex != -1) {
+                            Path outputPath =
+                                    resolvePath(arguments[redirectIndex + 1]);
+
+                            processBuilder.redirectOutput(outputPath.toFile());
                         } else {
                             processBuilder.inheritIO();
                         }
