@@ -1,3 +1,4 @@
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -194,13 +195,37 @@ public class Main {
 
                     if (Files.isExecutable(Path.of(fullPath))) {
                         List<String> commandArg = new ArrayList<>();
+                        String filepath = "";
+                        boolean redirect = false;
 
-                        for (String argument : arguments) {
-                            commandArg.add(argument);
+                        for (int i = 0; i < arguments.length; i++) {
+                            if (arguments[i].equals(">")) {
+                                if (i + 1 >= arguments.length) {
+                                    System.out.println("Syntax error: expected file path after >");
+                                    redirect = true;
+                                    break;
+                                }
+
+                                filepath = arguments[++i];
+                                redirect = true;
+                                break;
+                            }
+
+                            commandArg.add(arguments[i]);
+                        }
+
+                        if (redirect && filepath.isEmpty()) {
+                            break;
                         }
 
                         ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
-                        processBuilder.inheritIO();
+                        processBuilder.directory(new File(System.getProperty("user.dir")));
+
+                        if (redirect) {
+                            processBuilder.redirectOutput(new File(filepath));
+                        } else {
+                            processBuilder.inheritIO();
+                        }
 
                         Process process = processBuilder.start();
                         process.waitFor();
@@ -213,9 +238,11 @@ public class Main {
                 if (!found) {
                     System.out.println(command + ": command not found");
                 }
-
             }
-
+//            for(int i=0;i< arguments.length;i++)
+//            {
+//                System.out.println(arguments[i] + " " + i);
+//            }
         }
 
         sc.close();
