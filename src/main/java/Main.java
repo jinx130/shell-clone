@@ -2,6 +2,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -14,17 +15,38 @@ public class Main {
         boolean inQuotes = false;
         boolean hasToken = false;
         boolean doubleQuotes =false;
+        boolean backslash =false;
+
         for (int i = 0; i < input.length(); i++) {
+
+            if(backslash)
+            {
+                backslash=!backslash;
+                if(!current.isEmpty())
+                {
+                    args.add(current.toString());
+                }
+                continue;
+            }
             char c = input.charAt(i);
 
             if(c=='"')
             {
                 doubleQuotes=!doubleQuotes;
             }
+            else if(c=='\\')
+            {
+              backslash = true;
+              if(i+1<input.length()) {
+                  current.append(input.charAt(i + 1));
+              }
+            }
            else if (c == '\''  && !doubleQuotes) {
                 inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
                 hasToken = true;        // so '' still counts as an argument
-            } else if (c == ' ' && !inQuotes && !doubleQuotes) {
+            }
+
+           else if (c == ' ' && !inQuotes && !doubleQuotes) {
                 if (hasToken) {
                     args.add(current.toString());
                     current.setLength(0);
@@ -195,7 +217,9 @@ public class Main {
                 if (!found) {
                     System.out.println(command + ": command not found");
                 }
+
             }
+
         }
 
         sc.close();
