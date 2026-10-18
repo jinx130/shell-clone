@@ -22,7 +22,7 @@ public class Main {
             if(backslash)
             {
                 backslash=!backslash;
-                if(!current.isEmpty())
+                if(!current.isEmpty() && i+1==input.length())
                 {
                     args.add(current.toString());
                 }
