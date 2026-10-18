@@ -15,35 +15,28 @@ public class Main {
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
         boolean hasToken = false;
-        boolean doubleQuotes =false;
-        boolean backslash =false;
+        boolean doubleQuotes = false;
+        boolean backslash = false;
 
         for (int i = 0; i < input.length(); i++) {
 
             char c = input.charAt(i);
 
-            if(backslash)
-            {
-                backslash=!backslash;
+            if (backslash) {
+                backslash = !backslash;
                 continue;
             }
-            if(c=='"')
-            {
-                doubleQuotes=!doubleQuotes;
-            }
-            else if(c=='\\' && !inQuotes)
-            {
-              backslash = true;
-              if(i+1<input.length()) {
-                  current.append(input.charAt(i + 1));
-              }
-            }
-           else if (c == '\''  && !doubleQuotes) {
+            if (c == '"') {
+                doubleQuotes = !doubleQuotes;
+            } else if (c == '\\' && !inQuotes) {
+                backslash = true;
+                if (i + 1 < input.length()) {
+                    current.append(input.charAt(i + 1));
+                }
+            } else if (c == '\'' && !doubleQuotes) {
                 inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
                 hasToken = true;        // so '' still counts as an argument
-            }
-
-           else if (c == ' ' && !inQuotes && !doubleQuotes) {
+            } else if (c == ' ' && !inQuotes && !doubleQuotes) {
                 if (hasToken) {
                     args.add(current.toString());
                     current.setLength(0);
@@ -79,36 +72,25 @@ public class Main {
             String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
                 break;
-            }
-            else if(command.equals("pwd"))
-            {
+            } else if (command.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
-            }
-
-            else if(command.startsWith("cd"))
-            {
+            } else if (command.startsWith("cd")) {
                 String command2 = input.substring(2).trim();
 
-                if(command2.startsWith("/")) {
+                if (command2.startsWith("/")) {
                     Path path = Paths.get(command2);
                     if (Files.isDirectory(path)) {
                         System.setProperty("user.dir", command2);
                     } else {
                         System.out.println("cd: " + command2 + ": No such file or directory");
                     }
-                }
-                else  if (command2.startsWith("../"))
-                {
-                    int count=0;
+                } else if (command2.startsWith("../")) {
+                    int count = 0;
                     int i;
-                    for( i=0;i<command2.length();i+=3)
-                    {
-                        if(command2.substring(i,i+3).equals("../"))
-                        {
+                    for (i = 0; i < command2.length(); i += 3) {
+                        if (command2.substring(i, i + 3).equals("../")) {
                             count++;
-                        }
-                        else
-                        {
+                        } else {
                             break;
                         }
                     }
@@ -123,23 +105,17 @@ public class Main {
                         index = pwd.lastIndexOf('/', index - 1);
                     }
 
-                    Path path = Paths.get(pwd.substring(0,index)+command2.substring(i));
-                    if(Files.isDirectory(path))
-                    {
-                        System.setProperty("user.dir",pwd.substring(0,index)+command2.substring(i));
-                    }
-                    else
-                    {
+                    Path path = Paths.get(pwd.substring(0, index) + command2.substring(i));
+                    if (Files.isDirectory(path)) {
+                        System.setProperty("user.dir", pwd.substring(0, index) + command2.substring(i));
+                    } else {
                         System.out.println("cd: " + command2 + ": No such file or directory");
                     }
-                }
-                else if (command2.equals("~")) {
+                } else if (command2.equals("~")) {
                     System.setProperty("user.dir", homeDirectory);
-                }
-                else if(command2.startsWith("./"))
-                {
+                } else if (command2.startsWith("./")) {
 
-                    command2 = System.getProperty("user.dir")+"/"+command2.substring(2);
+                    command2 = System.getProperty("user.dir") + "/" + command2.substring(2);
                     Path path = Paths.get(command2);
                     if (Files.isDirectory(path)) {
                         System.setProperty("user.dir", command2);
@@ -147,8 +123,7 @@ public class Main {
                         System.out.println("cd: " + command2 + ": No such file or directory");
                     }
                 }
-            }
-            else if (command.equals("type")) {
+            } else if (command.equals("type")) {
                 String command1 = input.substring(5).trim();
 
                 if (command1.equals("echo") || command1.equals("exit") || command1.equals("type") || command1.equals("pwd")) {
@@ -182,10 +157,7 @@ public class Main {
                     output.append(arguments[k]);
                 }
                 System.out.println(output);
-            }
-
-
-            else {
+            } else {
                 String path = System.getenv("PATH");
                 String[] directories = path.split(":");
                 boolean found = false;
@@ -199,9 +171,9 @@ public class Main {
                         boolean redirect = false;
 
                         for (int i = 0; i < arguments.length; i++) {
-                            if (arguments[i].equals(">") ||arguments[i].equals("1>")) {
+                            if (arguments[i].equals(">") || arguments[i].equals("1>")) {
                                 if (i + 1 >= arguments.length) {
-                                    System.out.println("Syntax error: expected file path after >");
+                                    System.out.println("Syntax error: expected file path after " + arguments[i]);
                                     redirect = true;
                                     break;
                                 }
@@ -238,13 +210,13 @@ public class Main {
                 if (!found) {
                     System.out.println(command + ": command not found");
                 }
-            }
 //            for(int i=0;i< arguments.length;i++)
 //            {
 //                System.out.println(arguments[i] + " " + i);
 //            }
-        }
+            }
 
-        sc.close();
+            sc.close();
+        }
     }
 }
