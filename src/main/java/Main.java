@@ -199,7 +199,7 @@ public class Main {
                         boolean redirect = false;
 
                         for (int i = 0; i < arguments.length; i++) {
-                            if (arguments[i].equals(">")) {
+                            if (arguments[i].equals(">") ||arguments[i].equals("1>")) {
                                 if (i + 1 >= arguments.length) {
                                     System.out.println("Syntax error: expected file path after >");
                                     redirect = true;
