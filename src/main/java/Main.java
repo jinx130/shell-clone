@@ -13,14 +13,18 @@ public class Main {
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
         boolean hasToken = false;
-
+        boolean doubleQuotes =false;
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
 
-            if (c == '\'') {
+            if(c=='"')
+            {
+                doubleQuotes=!doubleQuotes;
+            }
+           else if (c == '\''  && !doubleQuotes) {
                 inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
                 hasToken = true;        // so '' still counts as an argument
-            } else if (c == ' ' && !inQuotes) {
+            } else if (c == ' ' && !inQuotes && !doubleQuotes) {
                 if (hasToken) {
                     args.add(current.toString());
                     current.setLength(0);
