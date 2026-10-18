@@ -1,41 +1,37 @@
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    // CHANGE 1: new helper that splits input into arguments and respects single quotes
     static String[] parseArguments(String input) {
         List<String> args = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
-        boolean hasToken = false;
         boolean doubleQuotes = false;
+        boolean hasToken = false;
         boolean backslash = false;
 
         for (int i = 0; i < input.length(); i++) {
-
             char c = input.charAt(i);
 
             if (backslash) {
-                backslash = !backslash;
-                continue;
-            }
-            if (c == '"') {
-                doubleQuotes = !doubleQuotes;
+                current.append(c);
+                backslash = false;
+                hasToken = true;
             } else if (c == '\\' && !inQuotes) {
                 backslash = true;
-                if (i + 1 < input.length()) {
-                    current.append(input.charAt(i + 1));
-                }
+            } else if (c == '"' && !inQuotes) {
+                doubleQuotes = !doubleQuotes;
+                hasToken = true;
             } else if (c == '\'' && !doubleQuotes) {
-                inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
-                hasToken = true;        // so '' still counts as an argument
+                inQuotes = !inQuotes;
+                hasToken = true;
             } else if (c == ' ' && !inQuotes && !doubleQuotes) {
                 if (hasToken) {
                     args.add(current.toString());
@@ -46,6 +42,10 @@ public class Main {
                 current.append(c);
                 hasToken = true;
             }
+        }
+
+        if (backslash) {
+            current.append('\\');
         }
 
         if (hasToken) {
@@ -62,78 +62,52 @@ public class Main {
             System.out.print("$ ");
             String input = sc.nextLine();
 
-            // CHANGE 2: use the new parser instead of input.split(" ")
             String[] arguments = parseArguments(input);
+
             if (arguments.length == 0) {
-                continue;   // empty line, just show the prompt again
+                continue;
             }
 
             String command = arguments[0];
             String homeDirectory = System.getenv("HOME");
+
             if (command.equals("exit")) {
                 break;
             } else if (command.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
-            } else if (command.startsWith("cd")) {
-                String command2 = input.substring(2).trim();
 
-                if (command2.startsWith("/")) {
-                    Path path = Paths.get(command2);
-                    if (Files.isDirectory(path)) {
-                        System.setProperty("user.dir", command2);
-                    } else {
-                        System.out.println("cd: " + command2 + ": No such file or directory");
-                    }
-                } else if (command2.startsWith("../")) {
-                    int count = 0;
-                    int i;
-                    for (i = 0; i < command2.length(); i += 3) {
-                        if (command2.substring(i, i + 3).equals("../")) {
-                            count++;
-                        } else {
-                            break;
-                        }
-                    }
-                    // new command will be count directories back and add command 2 substring
+            } else if (command.equals("cd")) {
+                String command2 = arguments.length > 1 ? arguments[1] : homeDirectory;
+                Path path = Paths.get(command2.equals("~") ? homeDirectory : command2);
 
-                    String pwd = System.getProperty("user.dir");
-                    int index = pwd.lastIndexOf('/');
-
-                    int n = count;
-
-                    for (int j = 1; j < n; j++) {
-                        index = pwd.lastIndexOf('/', index - 1);
-                    }
-
-                    Path path = Paths.get(pwd.substring(0, index) + command2.substring(i));
-                    if (Files.isDirectory(path)) {
-                        System.setProperty("user.dir", pwd.substring(0, index) + command2.substring(i));
-                    } else {
-                        System.out.println("cd: " + command2 + ": No such file or directory");
-                    }
-                } else if (command2.equals("~")) {
-                    System.setProperty("user.dir", homeDirectory);
-                } else if (command2.startsWith("./")) {
-
-                    command2 = System.getProperty("user.dir") + "/" + command2.substring(2);
-                    Path path = Paths.get(command2);
-                    if (Files.isDirectory(path)) {
-                        System.setProperty("user.dir", command2);
-                    } else {
-                        System.out.println("cd: " + command2 + ": No such file or directory");
-                    }
+                if (!path.isAbsolute()) {
+                    path = Paths.get(System.getProperty("user.dir")).resolve(path);
                 }
-            } else if (command.equals("type")) {
-                String command1 = input.substring(5).trim();
 
-                if (command1.equals("echo") || command1.equals("exit") || command1.equals("type") || command1.equals("pwd")) {
+                path = path.normalize();
+
+                if (Files.isDirectory(path)) {
+                    System.setProperty("user.dir", path.toAbsolutePath().toString());
+                } else {
+                    System.out.println("cd: " + command2 + ": No such file or directory");
+                }
+
+            } else if (command.equals("type")) {
+                if (arguments.length < 2) {
+                    continue;
+                }
+
+                String command1 = arguments[1];
+
+                if (command1.equals("echo") || command1.equals("exit")
+                        || command1.equals("type") || command1.equals("pwd")
+                        || command1.equals("cd")) {
                     System.out.println(command1 + " is a shell builtin");
                 } else {
                     String path = System.getenv("PATH");
-                    String[] directories = path.split(":");
                     boolean found = false;
 
-                    for (String dir : directories) {
+                    for (String dir : path.split(":")) {
                         String fullPath = dir + "/" + command1;
 
                         if (Files.isExecutable(Path.of(fullPath))) {
@@ -147,54 +121,61 @@ public class Main {
                         System.out.println(command1 + ": not found");
                     }
                 }
+
             } else if (command.equals("echo")) {
-                // CHANGE 3: the parser already handled the quotes, so just join the args with a single space
                 StringBuilder output = new StringBuilder();
-                for (int k = 1; k < arguments.length; k++) {
-                    if (k > 1) {
+
+                for (int i = 1; i < arguments.length; i++) {
+                    if (i > 1) {
                         output.append(' ');
                     }
-                    output.append(arguments[k]);
+                    output.append(arguments[i]);
                 }
+
                 System.out.println(output);
+
             } else {
                 String path = System.getenv("PATH");
-                String[] directories = path.split(":");
                 boolean found = false;
 
-                for (String dir : directories) {
+                for (String dir : path.split(":")) {
                     String fullPath = dir + "/" + command;
 
                     if (Files.isExecutable(Path.of(fullPath))) {
                         List<String> commandArg = new ArrayList<>();
-                        String filepath = "";
-                        boolean redirect = false;
+                        String filepath = null;
+                        String redirectOperator = null;
 
                         for (int i = 0; i < arguments.length; i++) {
                             if (arguments[i].equals(">") || arguments[i].equals("1>")) {
+                                redirectOperator = arguments[i];
+
                                 if (i + 1 >= arguments.length) {
-                                    System.out.println("Syntax error: expected file path after " + arguments[i]);
-                                    redirect = true;
+                                    System.out.println("Syntax error: expected file path after " + redirectOperator);
                                     break;
                                 }
 
                                 filepath = arguments[++i];
-                                redirect = true;
                                 break;
                             }
 
                             commandArg.add(arguments[i]);
                         }
 
-                        if (redirect && filepath.isEmpty()) {
+                        if (redirectOperator != null && filepath == null) {
+                            found = true;
                             break;
                         }
 
                         ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
                         processBuilder.directory(new File(System.getProperty("user.dir")));
 
-                        if (redirect) {
-                            processBuilder.redirectOutput(new File(filepath));
+                        if (filepath != null) {
+                            File outputFile = new File(filepath);
+                            if (!outputFile.isAbsolute()) {
+                                outputFile = new File(System.getProperty("user.dir"), filepath);
+                            }
+                            processBuilder.redirectOutput(outputFile);
                         } else {
                             processBuilder.inheritIO();
                         }
@@ -210,13 +191,9 @@ public class Main {
                 if (!found) {
                     System.out.println(command + ": command not found");
                 }
-//            for(int i=0;i< arguments.length;i++)
-//            {
-//                System.out.println(arguments[i] + " " + i);
-//            }
             }
-
-            sc.close();
         }
+
+        sc.close();
     }
 }
