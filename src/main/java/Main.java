@@ -60,6 +60,20 @@ public class Main {
         }
         return null;
     }
+    public static boolean isValidFilePath(File file) {
+        // Get the folder where this file is supposed to live
+        File parentFolder = file.getParentFile();
+
+        // If there is no explicit parent folder in the path (like just "errs.txt"),
+        // it defaults to the current working directory, which always exists.
+        if (parentFolder == null) {
+            return true;
+        }
+
+        // Return true only if the parent folder actually exists on the system
+        return parentFolder.exists();
+    }
+
 
     // CLEANUP 2: running the process moved out of the PATH loop into its own method
     static void runExternal(String[] arguments) throws Exception {
@@ -72,11 +86,15 @@ public class Main {
 
         List<String> commandArg = new ArrayList<>();
         String filepath = null;
-        String currarguments = null;   // remembers which operator we saw: >, 1> or 2>
+        String currarguments = null;   // remembers which operator we saw: >, 1> or 2> , >> , 1>>
 
         for (int i = 0; i < arguments.length; i++) {
             // CHANGE 1: arguments[i].equals("2>") instead of arguments.equals("2>")
-            if (arguments[i].equals(">") || arguments[i].equals("1>") || arguments[i].equals("2>")) {
+            if (arguments[i].equals(">") || arguments[i].equals("1>")
+                    || arguments[i].equals("2>")
+                    || arguments[i].equals("1>>")
+                    || arguments[i].equals(">>")
+            ) {
                 if (i + 1 >= arguments.length) {
                     System.out.println("bash: syntax error near unexpected token `newline'");
                     return;
@@ -93,23 +111,43 @@ public class Main {
 
         if (filepath != null) {
             // same for 1> and 2>
+      // CLEANUP 4: resolve() handles absolute and relative paths, no isAbsolute check
             File outputFile = Path.of(System.getProperty("user.dir")).resolve(filepath).toFile();
 
-            // CHANGE 2: parent folder check now runs for both 1> and 2>
+            // CHANGE 2: parent folder check now runs for both 1> and 2> so it also checks if file is present or not
             if (!outputFile.getParentFile().isDirectory()) {
                 System.out.println("bash: " + filepath + ": No such file or directory");
                 return;
             }
 
+
             if (currarguments.equals(">") || currarguments.equals("1>")) {
-                processBuilder.redirectOutput(outputFile);                         // stdout goes to the file
+                processBuilder.redirectOutput(outputFile);                         // stdout goes to the file and also the file also gets created
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);     // stderr stays on screen
-            } else {
+            }
+            else if(currarguments.equals(">>")||currarguments.equals("1>>")   && isValidFilePath(outputFile))
+            {
+                // if txt or any kind of files exists
+                //else if parentdirectory is correct so make a file there and put this there
+                // ig check there to together then check again that which category so that last else like last last else is only written once
+                if(outputFile.getParentFile()==null)
+                {
+                    processBuilder.redirectOutput(outputFile);
+                }
+                else
+                {
+                    // append this shit to the new link like append echo to new line
+                    processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFile));
+                }
+            }
+            else if(currarguments.equals("2>")){
                 // CHANGE 3: the new 2> case
                 processBuilder.redirectError(outputFile);                          // stderr goes to the file
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);    // stdout stays on screen
             }
-        } else {
+        }
+
+        else {
             processBuilder.inheritIO();
         }
 
