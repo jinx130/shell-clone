@@ -215,6 +215,7 @@ public class Main {
                             }
 
                             processBuilder.redirectOutput(outputFile);
+                            processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                         } else {
                             processBuilder.inheritIO();
                         }
