@@ -1,42 +1,37 @@
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    // CHANGE 1: new helper that splits input into arguments and respects single quotes
     static String[] parseArguments(String input) {
         List<String> args = new ArrayList<>();
         StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
+        boolean singleQuotes = false;   // CLEANUP 8: renamed from inQuotes
         boolean hasToken = false;
         boolean doubleQuotes = false;
-        boolean backslash = false;
+        // CLEANUP 5: "backslash" flag removed
 
         for (int i = 0; i < input.length(); i++) {
 
             char c = input.charAt(i);
 
-            if (backslash) {
-                backslash = !backslash;
-                continue;
-            }
+            // CLEANUP 5: the "if (backslash) { ... continue; }" block is gone
+
             if (c == '"') {
                 doubleQuotes = !doubleQuotes;
-            } else if (c == '\\' && !inQuotes) {
-                backslash = true;
+            } else if (c == '\\' && !singleQuotes) {
                 if (i + 1 < input.length()) {
                     current.append(input.charAt(i + 1));
                 }
+                i++;   // CLEANUP 5: skip the escaped char right here
             } else if (c == '\'' && !doubleQuotes) {
-                inQuotes = !inQuotes;   // toggle quote mode, the quote itself is not added
-                hasToken = true;        // so '' still counts as an argument
-            } else if (c == ' ' && !inQuotes && !doubleQuotes) {
+                singleQuotes = !singleQuotes;
+                hasToken = true;
+            } else if (c == ' ' && !singleQuotes && !doubleQuotes) {
                 if (hasToken) {
                     args.add(current.toString());
                     current.setLength(0);
@@ -55,21 +50,87 @@ public class Main {
         return args.toArray(new String[0]);
     }
 
+    // CLEANUP 1: one PATH search used by both "type" and external commands
+    static String findExecutable(String name) {
+        for (String dir : System.getenv("PATH").split(":")) {
+            String fullPath = dir + "/" + name;
+            if (Files.isExecutable(Path.of(fullPath))) {
+                return fullPath;
+            }
+        }
+        return null;
+    }
+
+    // CLEANUP 2: running the process moved out of the PATH loop into its own method
+    static void runExternal(String[] arguments) throws Exception {
+        String command = arguments[0];
+
+        if (findExecutable(command) == null) {
+            System.out.println(command + ": command not found");
+            return;
+        }
+
+        List<String> commandArg = new ArrayList<>();
+        String filepath = null;
+        String currarguments = null;   // remembers which operator we saw: >, 1> or 2>
+
+        for (int i = 0; i < arguments.length; i++) {
+            // CHANGE 1: arguments[i].equals("2>") instead of arguments.equals("2>")
+            if (arguments[i].equals(">") || arguments[i].equals("1>") || arguments[i].equals("2>")) {
+                if (i + 1 >= arguments.length) {
+                    System.out.println("bash: syntax error near unexpected token `newline'");
+                    return;
+                }
+                currarguments = arguments[i];
+                filepath = arguments[i + 1];
+                break;
+            }
+            commandArg.add(arguments[i]);
+        }
+
+        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
+        processBuilder.directory(new File(System.getProperty("user.dir")));
+
+        if (filepath != null) {
+            // same for 1> and 2>
+            File outputFile = Path.of(System.getProperty("user.dir")).resolve(filepath).toFile();
+
+            // CHANGE 2: parent folder check now runs for both 1> and 2>
+            if (!outputFile.getParentFile().isDirectory()) {
+                System.out.println("bash: " + filepath + ": No such file or directory");
+                return;
+            }
+
+            if (currarguments.equals(">") || currarguments.equals("1>")) {
+                processBuilder.redirectOutput(outputFile);                         // stdout goes to the file
+                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);     // stderr stays on screen
+            } else {
+                // CHANGE 3: the new 2> case
+                processBuilder.redirectError(outputFile);                          // stderr goes to the file
+                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);    // stdout stays on screen
+            }
+        } else {
+            processBuilder.inheritIO();
+        }
+
+        Process process = processBuilder.start();
+        process.waitFor();
+    }
+
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
+        String homeDirectory = System.getenv("HOME");   // CLEANUP 8: moved above the loop
 
         while (true) {
             System.out.print("$ ");
             String input = sc.nextLine();
 
-            // CHANGE 2: use the new parser instead of input.split(" ")
             String[] arguments = parseArguments(input);
             if (arguments.length == 0) {
-                continue;   // empty line, just show the prompt again
+                continue;
             }
 
             String command = arguments[0];
-            String homeDirectory = System.getenv("HOME");
             if (command.equals("exit")) {
                 break;
             } else if (command.equals("pwd")) {
@@ -78,7 +139,7 @@ public class Main {
                 String command2 = input.substring(2).trim();
 
                 if (command2.startsWith("/")) {
-                    Path path = Paths.get(command2);
+                    Path path = Path.of(command2);   // CLEANUP 8: Path.of everywhere
                     if (Files.isDirectory(path)) {
                         System.setProperty("user.dir", command2);
                     } else {
@@ -94,7 +155,6 @@ public class Main {
                             break;
                         }
                     }
-                    // new command will be count directories back and add command 2 substring
 
                     String pwd = System.getProperty("user.dir");
                     int index = pwd.lastIndexOf('/');
@@ -105,7 +165,7 @@ public class Main {
                         index = pwd.lastIndexOf('/', index - 1);
                     }
 
-                    Path path = Paths.get(pwd.substring(0, index) + command2.substring(i));
+                    Path path = Path.of(pwd.substring(0, index) + command2.substring(i));
                     if (Files.isDirectory(path)) {
                         System.setProperty("user.dir", pwd.substring(0, index) + command2.substring(i));
                     } else {
@@ -114,9 +174,8 @@ public class Main {
                 } else if (command2.equals("~")) {
                     System.setProperty("user.dir", homeDirectory);
                 } else if (command2.startsWith("./")) {
-
                     command2 = System.getProperty("user.dir") + "/" + command2.substring(2);
-                    Path path = Paths.get(command2);
+                    Path path = Path.of(command2);
                     if (Files.isDirectory(path)) {
                         System.setProperty("user.dir", command2);
                     } else {
@@ -129,111 +188,17 @@ public class Main {
                 if (command1.equals("echo") || command1.equals("exit") || command1.equals("type") || command1.equals("pwd")) {
                     System.out.println(command1 + " is a shell builtin");
                 } else {
-                    String path = System.getenv("PATH");
-                    String[] directories = path.split(":");
-                    boolean found = false;
-
-                    for (String dir : directories) {
-                        String fullPath = dir + "/" + command1;
-
-                        if (Files.isExecutable(Path.of(fullPath))) {
-                            System.out.println(command1 + " is " + fullPath);
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found) {
+                    // CLEANUP 1: uses findExecutable, no "found" flag
+                    String fullPath = findExecutable(command1);
+                    if (fullPath != null) {
+                        System.out.println(command1 + " is " + fullPath);
+                    } else {
                         System.out.println(command1 + ": not found");
                     }
                 }
-//            } else if (command.equals("echo")) {
-//                // CHANGE 3: the parser already handled the quotes, so just join the args with a single space
-//                StringBuilder output = new StringBuilder();
-//                for (int k = 1; k < arguments.length; k++) {
-//                    if (k > 1) {
-//                        output.append(' ');
-//                    }
-//                    output.append(arguments[k]);
-//                }
-//                System.out.println(output);
             } else {
-
-                String path = System.getenv("PATH");
-                String[] directories = path.split(":");
-                boolean found = false;
-
-                for (String dir : directories) {
-                    String fullPath = dir + "/" + command;
-
-                    if (Files.isExecutable(Path.of(fullPath))) {
-                        List<String> commandArg = new ArrayList<>();
-                        String filepath = "";
-                        boolean redirect = false;
-
-                        for (int i = 0; i < arguments.length; i++) {
-                            if (arguments[i].equals(">") || arguments[i].equals("1>")) {
-                                if (i + 1 >= arguments.length) {
-                                    System.out.println(
-                                            "bash: syntax error near unexpected token `newline'"
-                                    );
-                                    redirect = true;
-                                    break;
-                                }
-
-                                filepath = arguments[++i];
-                                redirect = true;
-                                break;
-                            }
-
-                            commandArg.add(arguments[i]);
-                        }
-
-                        if (redirect && filepath.isEmpty()) {
-                            found = true;
-                            break;
-                        }
-
-                        ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
-                        processBuilder.directory(new File(System.getProperty("user.dir")));
-
-                        if (redirect) {
-                            File outputFile = new File(filepath);
-
-                            if (!outputFile.isAbsolute()) {
-                                outputFile = new File(
-                                        System.getProperty("user.dir"), filepath
-                                );
-                            }
-
-                            if (!outputFile.getParentFile().isDirectory()) {
-                                System.out.println(
-                                        "bash: " + filepath + ": No such file or directory"
-                                );
-                                found = true;
-                                break;
-                            }
-
-                            processBuilder.redirectOutput(outputFile);
-                            processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                        } else {
-                            processBuilder.inheritIO();
-                        }
-
-                        Process process = processBuilder.start();
-                        process.waitFor();
-
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) {
-                    System.out.println(command + ": command not found");
-                }
-
+                runExternal(arguments);   // CLEANUP 1 + 2: the whole old else block is now this one line
             }
-
         }
         sc.close();
     }
