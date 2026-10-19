@@ -147,16 +147,16 @@ public class Main {
                         System.out.println(command1 + ": not found");
                     }
                 }
-            } else if (command.equals("echo")) {
-                // CHANGE 3: the parser already handled the quotes, so just join the args with a single space
-                StringBuilder output = new StringBuilder();
-                for (int k = 1; k < arguments.length; k++) {
-                    if (k > 1) {
-                        output.append(' ');
-                    }
-                    output.append(arguments[k]);
-                }
-                System.out.println(output);
+//            } else if (command.equals("echo")) {
+//                // CHANGE 3: the parser already handled the quotes, so just join the args with a single space
+//                StringBuilder output = new StringBuilder();
+//                for (int k = 1; k < arguments.length; k++) {
+//                    if (k > 1) {
+//                        output.append(' ');
+//                    }
+//                    output.append(arguments[k]);
+//                }
+//                System.out.println(output);
             } else {
 
                 String path = System.getenv("PATH");
