@@ -4,9 +4,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 public class Main {
-
+    static final Set<String> REDIRECTS = Set.of(">", "1>", "2>", ">>", "1>>", "2>>");
     static String[] parseArguments(String input) {
         List<String> args = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -60,19 +61,7 @@ public class Main {
         }
         return null;
     }
-    public static boolean isValidFilePath(File file) {
-        // Get the folder where this file is supposed to live
-        File parentFolder = file.getParentFile();
 
-        // If there is no explicit parent folder in the path (like just "errs.txt"),
-        // it defaults to the current working directory, which always exists.
-        if (parentFolder == null) {
-            return true;
-        }
-
-        // Return true only if the parent folder actually exists on the system
-        return parentFolder.exists();
-    }
 
 
     // CLEANUP 2: running the process moved out of the PATH loop into its own method
@@ -85,21 +74,16 @@ public class Main {
         }
 
         List<String> commandArg = new ArrayList<>();
+        String operator = null;
         String filepath = null;
-        String currarguments = null;   // remembers which operator we saw: >, 1> or 2> , >> , 1>>
 
         for (int i = 0; i < arguments.length; i++) {
-            // CHANGE 1: arguments[i].equals("2>") instead of arguments.equals("2>")
-            if (arguments[i].equals(">") || arguments[i].equals("1>")
-                    || arguments[i].equals("2>")
-                    || arguments[i].equals("1>>")
-                    || arguments[i].equals(">>")
-            ) {
+            if (REDIRECTS.contains(arguments[i])) {
                 if (i + 1 >= arguments.length) {
                     System.out.println("bash: syntax error near unexpected token `newline'");
                     return;
                 }
-                currarguments = arguments[i];
+                operator = arguments[i];
                 filepath = arguments[i + 1];
                 break;
             }
@@ -109,52 +93,34 @@ public class Main {
         ProcessBuilder processBuilder = new ProcessBuilder(commandArg);
         processBuilder.directory(new File(System.getProperty("user.dir")));
 
-        if (filepath != null) {
-            // same for 1> and 2>
-      // CLEANUP 4: resolve() handles absolute and relative paths, no isAbsolute check
+        if (filepath == null) {
+            processBuilder.inheritIO();
+        } else {
             File outputFile = Path.of(System.getProperty("user.dir")).resolve(filepath).toFile();
 
-            // CHANGE 2: parent folder check now runs for both 1> and 2> so it also checks if file is present or not
             if (!outputFile.getParentFile().isDirectory()) {
                 System.out.println("bash: " + filepath + ": No such file or directory");
                 return;
             }
 
+            boolean isStderr = operator.startsWith("2");   // 2> or 2>>
+            boolean append = operator.endsWith(">>");      // >> or 1>> or 2>>
 
-            if (currarguments.equals(">") || currarguments.equals("1>")) {
-                processBuilder.redirectOutput(outputFile);                         // stdout goes to the file and also the file also gets created
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);     // stderr stays on screen
-            }
-            else if(currarguments.equals(">>")||currarguments.equals("1>>")   && isValidFilePath(outputFile))
-            {
-                // if txt or any kind of files exists
-                //else if parentdirectory is correct so make a file there and put this there
-                // ig check there to together then check again that which category so that last else like last last else is only written once
-                if(outputFile.getParentFile()==null)
-                {
-                    processBuilder.redirectOutput(outputFile);
-                }
-                else
-                {
-                    // append this shit to the new link like append echo to new line
-                    processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFile));
-                }
-            }
-            else if(currarguments.equals("2>")){
-                // CHANGE 3: the new 2> case
-                processBuilder.redirectError(outputFile);                          // stderr goes to the file
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);    // stdout stays on screen
+            ProcessBuilder.Redirect target = append
+                    ? ProcessBuilder.Redirect.appendTo(outputFile)
+                    : ProcessBuilder.Redirect.to(outputFile);
+
+            if (isStderr) {
+                processBuilder.redirectError(target);
+                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            } else {
+                processBuilder.redirectOutput(target);
+                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
             }
         }
 
-        else {
-            processBuilder.inheritIO();
-        }
-
-        Process process = processBuilder.start();
-        process.waitFor();
+        processBuilder.start().waitFor();
     }
-
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
         String homeDirectory = System.getenv("HOME");   // CLEANUP 8: moved above the loop
